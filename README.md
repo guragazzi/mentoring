@@ -1,4 +1,4 @@
-# mentoring
+# Mentoring - a development programm to improve juniors and mid-level IT professional skills.
 Mentoring in Shell scripting and programming for Junior and Mid-level developers.
 
 # 🛠️ Decommission Script for IBM Spectrum Protect (TSM)
