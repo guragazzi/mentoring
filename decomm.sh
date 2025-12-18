@@ -31,7 +31,7 @@ TSM=$(grep -iw $vm /reports/history/output/baseline.out | grep VMFULL | cut -d, 
 log "Processando TSM: $TSM"
 
 # Search schedules with VM
-SchedVm=$($cmdTab -se="$TSM" "SELECT schedule_name,options FROM CLIENT_SCHEDULES WHERE LOWER(options) LIKE LOWER('%$vm%')" | egrep -v '_RST' | grep -E "${vm}(,|\")")
+SchedVm=$($cmdTab -se="$TSM" "SELECT schedule_name,options FROM CLIENT_SCHEDULES WHERE LOWER(options) LIKE LOWER('%$vm%') or UPPER(options) LIKE UPPER('%$vm%')" | egrep -v '_RST' | grep -E "${vm}(,|\")")
 if [  ! -z "$SchedVm" ]
 then
   echo "$SchedVm" | while IFS=" " read -r SCHED MODE OPT
@@ -45,18 +45,21 @@ then
       NEWOPT=$(echo $OPT| sed 's/'$vm',//')
       NEWSCHED_NAME=$(echo $SCHED | awk '{print $1}')
       NEWSCHED_ASNODE=$(echo $SCHED | awk '{print $2}')
+      echo "LOG ON THE TSM $TSM"
       echo "upd sched VMW $NEWSCHED_NAME -opt='$NEWSCHED_ASNODE $MODE $NEWOPT""'"
       #Look if VM is in the end
       elif [[ "$OPT" == *,$vm'"'* ]]; then
       NEWOPT=$(echo $OPT| sed 's/,'$vm'//')
       NEWSCHED_NAME=$(echo $SCHED | awk '{print $1}')
       NEWSCHED_ASNODE=$(echo $SCHED | awk '{print $2}')
+      echo "LOG ON THE TSM $TSM"
       echo "upd sched VMW $NEWSCHED_NAME -opt='$NEWSCHED_ASNODE $MODE $NEWOPT""'"
       #Look if VM is in the begin
       elif [[ "$OPT" == *'"'$vm,* ]]; then
       NEWOPT=$(echo $OPT| sed 's/'$vm',//'
       NEWSCHED_NAME=$(echo $SCHED | awk '{print $1}')
       NEWSCHED_ASNODE=$(echo $SCHED | awk '{print $2}'))
+      echo "LOG ON THE TSM $TSM"
       echo "upd sched VMW $NEWSCHED_NAME -opt='$NEWSCHED_ASNODE $MODE $NEWOPT""'"
       
       fi
@@ -66,5 +69,22 @@ then
 else
     log "Nenhuma opção encontrada para $vm no schedule $SCHED"
 fi
+
+#DECOM DE NODE BACLI
+TSM=$(grep -iw $vm /reports/history/output/baseline.out | egrep -v VMFULL | cut -d, -f1)
+echo "$TSM" | while read TSMNODE_LINE
+do
+  $cmdTab -se="$TSM" "q sched * * n=$vm" | while read SCHED_NODE
+  do
+    DOMAIN=$(echo "$TSMNODE_LINE" | awk '{print $1}')
+    SCHED_NAME=$(echo "$TSMNODE_LINE" | awk '{print $2}')
+    echo "upd..."
+    CONTACT=$($cmdTab -se="$TSM" "select contact from nodes where node_name='$vm'")
+    echo "upd node $vm contact=" "'" "$CONTACT - DECOMM $CHANGE - $TASK" "'"
+    echo "upd node $vm D_$vm""
+    echo "lock node D_$vm"
+  done
+done
+
 
 log "End of the Program"
